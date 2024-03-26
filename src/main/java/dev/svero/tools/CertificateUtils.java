@@ -1,5 +1,8 @@
 package dev.svero.tools;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +18,8 @@ import java.util.*;
  * @author Sven Roeseler
  */
 public class CertificateUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CertificateUtils.class);
+
     /**
      * Reads one or more X.509 certificates from the specified PEM file.
      *
@@ -27,6 +32,8 @@ public class CertificateUtils {
         if (!Files.exists(certificatesFile)) {
             throw new IllegalArgumentException("File not found: " + certificatesFile);
         }
+
+        LOGGER.debug("Try to load X.509 certificates from {}", certificatesFile);
 
         List<X509Certificate> certificates = new ArrayList<>();
 

@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
 import java.security.*;
+import java.security.cert.X509Certificate;
 
 /**
  * Implements methods for handling SSL/TLS contexts.
@@ -45,13 +46,27 @@ public class SSLUtils {
         try {
             context = SSLContext.getInstance("TLS");
 
-            TrustManager[] trustManagers = null;
+            TrustManager[] trustManagers;
             KeyManager[] keyManagers = null;
 
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             if (trustStore != null) {
-                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                LOGGER.debug("Using specified trust store");
                 tmf.init(trustStore);
-                trustManagers = tmf.getTrustManagers();
+            } else {
+                LOGGER.debug("Using default JVM trust store");
+                tmf.init((KeyStore) null);
+            }
+
+            trustManagers = tmf.getTrustManagers();
+
+            for (TrustManager tm : trustManagers) {
+                if (tm instanceof X509TrustManager x509TrustManager) {
+                    X509Certificate[] acceptedIssuers = x509TrustManager.getAcceptedIssuers();
+                    LOGGER.debug("Has {} accepted issueres", acceptedIssuers.length);
+                } else {
+                    LOGGER.debug("Unexpected trust manager instance found: {}", tm.getClass());
+                }
             }
 
             if (keyStore != null) {
@@ -72,6 +87,8 @@ public class SSLUtils {
 
                 kmf.init(keyStore, keyStorePassword.toCharArray());
                 keyManagers = kmf.getKeyManagers();
+            } else {
+                LOGGER.info("No keystore will be used for SSL context");
             }
 
             context.init(keyManagers, trustManagers, new SecureRandom());

@@ -52,7 +52,12 @@ public class Application {
     private Options createOptions() {
         Options options = new Options();
 
-        options.addOption(null, "CAcerts", true, "Path and name of the CA certificates file");
+        options.addOption(null, "certs", true,
+                "File with one or more trusted certificates (PEM)");
+        options.addOption(null, "trustStore", true,
+                "(Optional) Trust store file");
+        options.addOption(null, "trustStorePassword", true,
+                "Password for accessing the trust store");
 
         return options;
     }
@@ -68,11 +73,11 @@ public class Application {
         final CommandLine cmd = DefaultParser.builder().build().parse(options, args);
 
         KeyStore trustStore = null;
-        if (cmd.hasOption("CAcerts")) {
-            final String caCertsFilename = cmd.getOptionValue("CAcerts");
+        if (cmd.hasOption("certs")) {
+            final String caCertsFilename = cmd.getOptionValue("certs");
             if (StringUtils.isBlank(caCertsFilename)) {
-                LOGGER.error("The parameters CAcerts has no valid value");
-                throw new IllegalArgumentException("The specified value for CAcerts may not be blank");
+                LOGGER.error("The parameter \"certs\" has no valid value");
+                return;
             }
 
             X509Certificate[] certificates = certificateUtils.importCertificates(Path.of(caCertsFilename));
@@ -81,6 +86,16 @@ public class Application {
             } else {
                 trustStore = keyStoreUtils.createKeyStore(certificates);
             }
+        } else if (cmd.hasOption("trustStore")) {
+            if (!cmd.hasOption("trustStorePassword")) {
+                LOGGER.error("You need to specify the password for the trust store");
+                return;
+            }
+
+            final String trustStoreFilename = cmd.getOptionValue("trustStore");
+            final String trustStorePassword = cmd.getOptionValue("trustStorePassword");
+
+            trustStore = keyStoreUtils.loadKeyStore(trustStoreFilename, trustStorePassword);
         }
 
         SSLContext context = sslUtils.createSSLContext(trustStore);

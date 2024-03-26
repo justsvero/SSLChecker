@@ -1,8 +1,13 @@
 package dev.svero.tools;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Objects;
 
@@ -64,5 +69,55 @@ public class KeyStoreUtils {
     public KeyStore createKeyStoreFromCertificateFile(Path certificateFile) throws KeyStoreException {
         X509Certificate[] certificates = certificateUtils.importCertificates(certificateFile);
         return createKeyStore(certificates);
+    }
+
+    /**
+     * Tries to load a key store using the specified format.
+     *
+     * @param keyStoreFilename Filename of the key store
+     * @param keyStorePassword Password for accessing the key store
+     * @param keyStoreType Type (JKS, PKCS.12)
+     * @return Created KeyStore instance
+     */
+    public KeyStore loadKeyStore(final String keyStoreFilename, final String keyStorePassword, final String keyStoreType) {
+        if (StringUtils.isBlank(keyStoreFilename)) {
+            throw new IllegalArgumentException("keyStoreFilename should not be blank");
+        }
+
+        if (StringUtils.isBlank(keyStorePassword)) {
+            throw new IllegalArgumentException("keyStorePassword should not be blank");
+        }
+
+        if (StringUtils.isBlank(keyStoreType)) {
+            return loadKeyStore(keyStoreFilename, keyStorePassword);
+        }
+
+        KeyStore keyStore;
+
+        try {
+            keyStore = KeyStore.getInstance(keyStoreType);
+
+            if (Files.notExists(Path.of(keyStoreFilename))) {
+                throw new IllegalArgumentException("The specified key store file \"" + keyStoreFilename
+                        + "\" does not exist");
+            }
+
+            keyStore.load(new FileInputStream(keyStoreFilename), keyStorePassword.toCharArray());
+        } catch (KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
+            throw new RuntimeException("Could not create a KeyStore instance", e);
+        }
+
+        return keyStore;
+    }
+
+    /**
+     * Tries to load a key store using the PKCS.12 format.
+     *
+     * @param keyStoreFilename Filename of the key store
+     * @param keyStorePassword Password for accessing the key store
+     * @return Created KeyStore instance
+     */
+    public KeyStore loadKeyStore(final String keyStoreFilename, final String keyStorePassword) {
+        return loadKeyStore(keyStoreFilename, keyStorePassword, "PKCS12");
     }
 }
