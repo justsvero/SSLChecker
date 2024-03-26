@@ -52,12 +52,15 @@ public class Application {
     private Options createOptions() {
         Options options = new Options();
 
-        options.addOption(null, "certs", true,
-                "File with one or more trusted certificates (PEM)");
-        options.addOption(null, "trustStore", true,
-                "(Optional) Trust store file");
-        options.addOption(null, "trustStorePassword", true,
-                "Password for accessing the trust store");
+        options.addOption(null, "certs", true, "File with certificates (PEM)");
+        options.addOption(null, "trustStore", true, "Trust store file");
+        options.addOption(null, "trustStorePassword", true, "Trust store password");
+
+        options.addOption(null, "keyStore", true, "Key store file");
+        options.addOption(null, "keyStorePassword", true, "Key store password");
+
+        options.addOption(null, "serverName", true, "Server name");
+        options.addOption(null, "port", true, "Port");
 
         return options;
     }
@@ -82,7 +85,7 @@ public class Application {
 
             X509Certificate[] certificates = certificateUtils.importCertificates(Path.of(caCertsFilename));
             if (certificates.length == 0) {
-                LOGGER.warn("No certificates found in {}", caCertsFilename);
+                LOGGER.warn("No certificates found in {} - using default JVM trust store", caCertsFilename);
             } else {
                 trustStore = keyStoreUtils.createKeyStore(certificates);
             }
@@ -94,11 +97,36 @@ public class Application {
 
             final String trustStoreFilename = cmd.getOptionValue("trustStore");
             final String trustStorePassword = cmd.getOptionValue("trustStorePassword");
+            if (StringUtils.isAnyBlank(trustStoreFilename, trustStorePassword)) {
+                LOGGER.error("Either the specified trust store filename or the trust store password are invalid");
+                return;
+            }
+
+            LOGGER.debug("Using trust store {}", trustStoreFilename);
 
             trustStore = keyStoreUtils.loadKeyStore(trustStoreFilename, trustStorePassword);
         }
 
-        SSLContext context = sslUtils.createSSLContext(trustStore);
+        KeyStore keyStore = null;
+        String keyStorePassword = null;
+
+        if (cmd.hasOption("keyStore")) {
+            if (!cmd.hasOption("keyStorePassword")) {
+                LOGGER.error("You need to specified a key store password");
+                return;
+            }
+
+            final String keyStoreFilename = cmd.getOptionValue("keyStore");
+            keyStorePassword = cmd.getOptionValue("keyStorePassword");
+            if (StringUtils.isAnyBlank(keyStoreFilename, keyStorePassword)) {
+                LOGGER.error("Either the specified key store filename or the key store password are invalid");
+                return;
+            }
+
+            keyStore = keyStoreUtils.loadKeyStore(keyStoreFilename, keyStorePassword);
+        }
+
+        SSLContext context = sslUtils.createSSLContext(trustStore, keyStore, keyStorePassword);
         LOGGER.debug("Protocol: {}", context.getProtocol());
     }
 }

@@ -1,6 +1,8 @@
 package dev.svero.tools;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +19,8 @@ import java.util.Objects;
  * @author Sven Roeseler
  */
 public class KeyStoreUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(KeyStoreUtils.class);
+
     private final CertificateUtils certificateUtils;
 
     /**
@@ -101,6 +105,8 @@ public class KeyStoreUtils {
                 throw new IllegalArgumentException("The specified key store file \"" + keyStoreFilename
                         + "\" does not exist");
             }
+
+            LOGGER.debug("Try to load key store from {}", keyStoreFilename);
 
             keyStore.load(new FileInputStream(keyStoreFilename), keyStorePassword.toCharArray());
         } catch (KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {

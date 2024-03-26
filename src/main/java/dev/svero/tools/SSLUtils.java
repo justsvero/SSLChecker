@@ -32,7 +32,7 @@ public class SSLUtils {
      * @return Created SSL context instance
      */
     public SSLContext createSSLContext(KeyStore trustStore) {
-        return createSSLContext(null, null, trustStore);
+        return createSSLContext(trustStore, null, null);
     }
 
     /**
@@ -40,7 +40,7 @@ public class SSLUtils {
      *
      * @return SSL context or null
      */
-    public SSLContext createSSLContext(KeyStore keyStore, String keyStorePassword, KeyStore trustStore) {
+    public SSLContext createSSLContext(KeyStore trustStore, KeyStore keyStore, String keyStorePassword) {
         SSLContext context;
 
         try {
@@ -51,7 +51,6 @@ public class SSLUtils {
 
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             if (trustStore != null) {
-                LOGGER.debug("Using specified trust store");
                 tmf.init(trustStore);
             } else {
                 LOGGER.debug("Using default JVM trust store");
