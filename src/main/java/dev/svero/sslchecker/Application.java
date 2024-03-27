@@ -13,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-
-import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
