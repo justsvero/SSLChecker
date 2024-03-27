@@ -1,6 +1,7 @@
 package dev.svero.sslchecker;
 
 import dev.svero.tools.CertificateUtils;
+import dev.svero.tools.HttpUtils;
 import dev.svero.tools.KeyStoreUtils;
 import dev.svero.tools.SSLUtils;
 import org.apache.commons.cli.CommandLine;
@@ -12,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+
+import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -43,6 +46,7 @@ public class Application {
     private final CertificateUtils certificateUtils = new CertificateUtils();
     private final KeyStoreUtils keyStoreUtils = new KeyStoreUtils(certificateUtils);
     private final SSLUtils sslUtils = new SSLUtils();
+    private final HttpUtils httpUtils = new HttpUtils();
 
     /**
      * Defines the available command-line options.
@@ -59,8 +63,7 @@ public class Application {
         options.addOption(null, "keyStore", true, "Key store file");
         options.addOption(null, "keyStorePassword", true, "Key store password");
 
-        options.addOption(null, "serverName", true, "Server name");
-        options.addOption(null, "port", true, "Port");
+        options.addOption(null, "url", true, "The url to call");
 
         return options;
     }
@@ -127,6 +130,24 @@ public class Application {
         }
 
         SSLContext context = sslUtils.createSSLContext(trustStore, keyStore, keyStorePassword);
-        LOGGER.debug("Protocol: {}", context.getProtocol());
+        LOGGER.debug("SSL context successfully created: {}", context.toString());
+        httpUtils.setSSLContext(context);
+
+        String url = "https://www.google.de/";
+
+        if (cmd.hasOption("url")) {
+            url = cmd.getOptionValue("url");
+            if (StringUtils.isBlank(url)) {
+                LOGGER.error("The argument \"url\" has no valid value");
+                return;
+            }
+        }
+
+        try {
+            String response = httpUtils.getRequest(url);
+            LOGGER.debug("Response:\n{}", response);
+        } catch (Exception ex) {
+            LOGGER.error("Could not perform a GET request for {} due to an unexpected error: {}", url, ex.getMessage());
+        }
     }
 }
